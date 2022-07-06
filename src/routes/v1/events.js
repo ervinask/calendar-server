@@ -69,9 +69,7 @@ router.post('/search', isLoggedIn, async (req, res) => {
     return res.send(data);
   } catch (err) {
     console.log(err);
-    res
-      .status(500)
-      .send({ err: 'Something wrong with the server.Please try again later' });
+    res.status(500).send({ err: 'Server issue occured' });
   }
 });
 
@@ -88,16 +86,12 @@ router.delete('/delete/:id', isLoggedIn, async (req, res) => {
     );
     await con.end();
     if (!data.affectedRows) {
-      return res.status(500).send({
-        err: 'something wrong with the server. Please try again later',
-      });
+      return res.status(500).send({ err: 'Server issue occured' });
     }
-    return res.send({ msg: 'record successfully deleted' });
+    return res.send({ msg: 'Event successfully deleted' });
   } catch (err) {
     console.log(err);
-    return res
-      .status(500)
-      .send({ msg: 'Something wrong with the server. Please try again later' });
+    return res.status(500).send({ msg: 'Server issue occured' });
   }
 });
 
