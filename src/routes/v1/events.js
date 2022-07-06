@@ -58,9 +58,9 @@ router.post('/search', isLoggedIn, async (req, res) => {
   try {
     const con = await mysql.createConnection(dbConfig);
     const [data] = await con.execute(
-      `SELECT * FROM events WHERE 
-      user_id=${userDetails.accountId}
-      AND title LIKE ${mysql.escape('%' + req.body.input + '%')}`,
+      `SELECT * FROM events WHERE user_id=${
+        userDetails.accountId
+      } AND title LIKE ${mysql.escape('%' + req.body.input + '%')}`,
     );
     await con.end();
     if (data.length === 0) {
@@ -72,6 +72,32 @@ router.post('/search', isLoggedIn, async (req, res) => {
     res
       .status(500)
       .send({ err: 'Something wrong with the server.Please try again later' });
+  }
+});
+
+router.delete('/delete/:id', isLoggedIn, async (req, res) => {
+  const token = req.headers.authorization.split(' ')[1];
+  const userDetails = jwt.verify(token, 'LABAS123');
+
+  try {
+    const con = await mysql.createConnection(dbConfig);
+    const [data] = await con.execute(
+      `DELETE FROM events WHERE id=${mysql.escape(
+        req.params.id,
+      )} and user_id=${mysql.escape(userDetails.accountId)}`,
+    );
+    await con.end();
+    if (!data.affectedRows) {
+      return res.status(500).send({
+        err: 'something wrong with the server. Please try again later',
+      });
+    }
+    return res.send({ msg: 'record successfully deleted' });
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .send({ msg: 'Something wrong with the server. Please try again later' });
   }
 });
 

@@ -27,9 +27,7 @@ router.post(`/register`, registrationValidation, async (req, res) => {
     await con.end();
 
     if (!data.insertId) {
-      return res.status(500).send({
-        err: 'Something went wrong with the server. Please try again later',
-      });
+      return res.status(500).send({ err: 'Server issue occured' });
     }
 
     return res.send({
@@ -37,10 +35,10 @@ router.post(`/register`, registrationValidation, async (req, res) => {
       accountId: data.insertId,
     });
   } catch (err) {
-    console.log(err);
-    return res.status(500).send({
-      err: 'Something went wrong with the server. Please try again later',
-    });
+    if (err.errno === 1062) {
+      return res.status(400).send({ err: 'Email is taken' });
+    }
+    return res.status(500).send({ err: 'Server issue occured' });
   }
 });
 
@@ -55,11 +53,11 @@ router.post('/login', loginValidation, async (req, res) => {
     await con.end();
 
     if (data.length === 0) {
-      return res.status(404).send({ err: 'User not found' });
+      return res.status(404).send({ err: 'Email or password is incorrect' });
     }
 
     if (!bcrypt.compareSync(req.body.password, data[0].password)) {
-      return res.status(404).send({ err: 'Incorrect password' });
+      return res.status(404).send({ err: 'Email or password is incorrect' });
     }
 
     const token = jwt.sign({ accountId: data[0].id }, 'LABAS123');
