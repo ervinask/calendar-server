@@ -1,8 +1,4 @@
-const {
-  registrationSchema,
-  loginSchema,
-  eventsSchema,
-} = require('../models/auth');
+const { registrationSchema, loginSchema, eventsSchema, changePasswordSchema } = require('../models/auth');
 
 const validation = async (req, res, next, schema) => {
   try {
@@ -15,9 +11,8 @@ const validation = async (req, res, next, schema) => {
 };
 
 module.exports = {
-  registrationValidation: (req, res, next) =>
-    validation(req, res, next, registrationSchema),
+  registrationValidation: (req, res, next) => validation(req, res, next, registrationSchema),
   loginValidation: (req, res, next) => validation(req, res, next, loginSchema),
-  eventsValidation: (req, res, next) =>
-    validation(req, res, next, eventsSchema),
+  changePasswordValidation: (req, res, next) => validation(req, res, next, changePasswordSchema),
+  eventsValidation: (req, res, next) => validation(req, res, next, eventsSchema),
 };

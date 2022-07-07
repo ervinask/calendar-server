@@ -11,6 +11,11 @@ const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+const changePasswordSchema = Joi.object({
+  oldPassword: Joi.string().required(),
+  newPassword: Joi.string().required(),
+});
+
 const eventsSchema = Joi.object({
   title: Joi.string().required(),
   date: Joi.string().required(),
@@ -19,4 +24,4 @@ const eventsSchema = Joi.object({
   description: Joi.string(),
 });
 
-module.exports = { registrationSchema, loginSchema, eventsSchema };
+module.exports = { registrationSchema, loginSchema, eventsSchema, changePasswordSchema };

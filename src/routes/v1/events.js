@@ -9,14 +9,11 @@ const { eventsValidation } = require('../../middleware/validation');
 const router = express.Router();
 
 router.get('/', isLoggedIn, async (req, res) => {
-  const token = req.headers.authorization.split(' ')[1];
-  const userDetails = jwt.verify(token, 'LABAS123');
-
   try {
     const con = await mysql.createConnection(dbConfig);
     const [data] = await con.execute(`
     SELECT id, title, date, startTime, endTime, description FROM events 
-    WHERE user_id = ${mysql.escape(userDetails.accountId)}`);
+    WHERE user_id = ${mysql.escape(req.user.accountId)}`);
     await con.end();
 
     return res.send(data);
@@ -27,11 +24,13 @@ router.get('/', isLoggedIn, async (req, res) => {
 });
 
 router.post('/', isLoggedIn, eventsValidation, async (req, res) => {
-  const token = req.headers.authorization.split(' ')[1];
-  const userDetails = jwt.verify(token, 'LABAS123');
-
   try {
     const con = await mysql.createConnection(dbConfig);
+
+    if (req.body.startTime > req.body.endTime) {
+      await con.end();
+      return res.status(500).send({ err: 'End time should be greater than start time' });
+    }
 
     const [data] = await con.execute(
       `INSERT INTO events (title, date, startTime, endTime, description, user_id)
@@ -40,7 +39,7 @@ router.post('/', isLoggedIn, eventsValidation, async (req, res) => {
         ${mysql.escape(req.body.startTime)},
         ${mysql.escape(req.body.endTime)},
         ${mysql.escape(req.body.description)},
-        ${mysql.escape(userDetails.accountId)})`,
+        ${mysql.escape(req.user.accountId)})`,
     );
 
     await con.end();
@@ -52,15 +51,12 @@ router.post('/', isLoggedIn, eventsValidation, async (req, res) => {
 });
 
 router.post('/search', isLoggedIn, async (req, res) => {
-  const token = req.headers.authorization.split(' ')[1];
-  const userDetails = jwt.verify(token, 'LABAS123');
-
   try {
     const con = await mysql.createConnection(dbConfig);
     const [data] = await con.execute(
-      `SELECT * FROM events WHERE user_id=${
-        userDetails.accountId
-      } AND title LIKE ${mysql.escape('%' + req.body.input + '%')}`,
+      `SELECT * FROM events WHERE user_id=${req.user.accountId} AND title LIKE ${mysql.escape(
+        '%' + req.body.input + '%',
+      )}`,
     );
     await con.end();
     if (data.length === 0) {
@@ -74,15 +70,10 @@ router.post('/search', isLoggedIn, async (req, res) => {
 });
 
 router.delete('/delete/:id', isLoggedIn, async (req, res) => {
-  const token = req.headers.authorization.split(' ')[1];
-  const userDetails = jwt.verify(token, 'LABAS123');
-
   try {
     const con = await mysql.createConnection(dbConfig);
     const [data] = await con.execute(
-      `DELETE FROM events WHERE id=${mysql.escape(
-        req.params.id,
-      )} and user_id=${mysql.escape(userDetails.accountId)}`,
+      `DELETE FROM events WHERE id=${mysql.escape(req.params.id)} and user_id=${mysql.escape(req.user.accountId)}`,
     );
     await con.end();
     if (!data.affectedRows) {

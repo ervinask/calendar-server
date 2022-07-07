@@ -2,12 +2,9 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
-const { dbConfig } = require('../../config');
-const {
-  registrationValidation,
-  loginValidation,
-} = require('../../middleware/validation');
+const isLoggedIn = require('../../middleware/auth');
+const { dbConfig, jwtSecret } = require('../../config');
+const { registrationValidation, loginValidation, changePasswordValidation } = require('../../middleware/validation');
 
 const router = express.Router();
 
@@ -46,8 +43,7 @@ router.post('/login', loginValidation, async (req, res) => {
   try {
     const con = await mysql.createConnection(dbConfig);
     const [data] = await con.execute(
-      'SELECT id, email, password FROM `users`' +
-        `WHERE email = ${mysql.escape(req.body.email)} LIMIT 1    `,
+      'SELECT id, email, password FROM `users`' + `WHERE email = ${mysql.escape(req.body.email)} LIMIT 1    `,
     );
 
     await con.end();
@@ -60,7 +56,7 @@ router.post('/login', loginValidation, async (req, res) => {
       return res.status(404).send({ err: 'Email or password is incorrect' });
     }
 
-    const token = jwt.sign({ accountId: data[0].id }, 'LABAS123');
+    const token = jwt.sign({ accountId: data[0].id }, jwtSecret);
     console.log(token);
 
     return res.send({
@@ -69,6 +65,35 @@ router.post('/login', loginValidation, async (req, res) => {
     });
   } catch (err) {
     return res.status(500).send({ err: 'A server issue occured' });
+  }
+});
+
+router.post('/change-password', isLoggedIn, changePasswordValidation, async (req, res) => {
+  try {
+    const con = await mysql.createConnection(dbConfig);
+    const [data] = await con.execute(
+      `SELECT id, email, password 
+      FROM users 
+      WHERE id = ${mysql.escape(req.user.accountId)} LIMIT 1`,
+    );
+
+    const chechHash = bcrypt.compareSync(req.body.oldPassword, data[0].password);
+
+    if (!chechHash) {
+      await con.end();
+      return res.status(400).send({ err: 'Incorrect old password' });
+    }
+
+    const newPasswordHash = bcrypt.hashSync(req.body.newPassword, 10);
+
+    const changePassDBRes = await con.execute(
+      `UPDATE users SET password=${mysql.escape(newPasswordHash)} WHERE id=${mysql.escape(req.user.accountId)}`,
+    );
+
+    await con.end();
+    return res.send({ msg: 'Password changed' });
+  } catch (err) {
+    return res.status(500).send({ err: 'Server issue occured' });
   }
 });
 
